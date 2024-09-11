@@ -8,7 +8,7 @@ new() ->
 update(Node, Links, Map) ->
     % removes any existing entries from this Node if any have been made
     % when update is made, the prior update will always be deleted, therefor pos is 1. 
-    MapWithoutNode = list:keydelete(Node, 1, Map),
+    MapWithoutNode = lists:keydelete(Node, 1, Map),
     % adds the new entry for links to this Node
     [{Node, Links} | MapWithoutNode].
 
@@ -24,11 +24,9 @@ end.
 all_nodes(Map) ->
     % Adds all nodes with links to the list NodesWithLinks by going through the map and adding the first element of each tuple to the list.
     NodesWithLinks = [Node || {Node, _} <- Map],
-    
     % adds all the reachable (nodes that are reached by the nodes in the 'NodesWithLinks' list) to a list 'ReachableNodes'
     % For each node in NodesWithLinks it calls reachable function to get their connected nodes and adds all these to the new list
     ReachableNodes = lists:flatten([reachable(Node, Map) || Node <- NodesWithLinks]),
-    
     % Combine the two created lists and remove duplicates making a list of ALL nodes 
     lists:usort(NodesWithLinks ++ ReachableNodes).
 
