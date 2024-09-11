@@ -1,0 +1,30 @@
+# Ignore BEAM files
+*.beam
+
+# Ignore compiled Erlang source files
+*.dump
+
+# Ignore logs
+*.log
+
+# Ignore temporary files created by Erlang shell or editor
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Ignore rebar build artifacts (if using rebar)
+rebar
+rebar.lock
+_build/
+deps/
+
+# Ignore Emacs backup files
+*~
+
+# Ignore IDE or editor project files
+.idea/
+.vscode/
+
+# Ignore any node_modules folder (in case Node.js is used)
+node_modules/
