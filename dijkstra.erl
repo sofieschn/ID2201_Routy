@@ -60,16 +60,17 @@ update(Node, N, Gateway, Sorted) ->
 iterate([], Map, Table) ->
     Table;
 
-% Checks if the path length of next Node is infinate (no connected nodes) 
+% Infinite path case: If the first node has an infinite path, return the table
 iterate([{_Node, inf, _Gateway} |_Rest], _Map, Table) ->
     Table;
 
-% For reachable nodes, add to routing table
+% Main case: Process the reachable nodes and add to the routing table
 iterate([{Node, Length, Gateway} | Rest], Map, Table) ->
     % call the reachable function in map to retrieve directly reachable nodes for this node
     ReachableNodes = map:reachable(Node, Map),
 
-    % Update sorted list for each reachable node using update function
+    % Update sorted list for each reachable node using the update function
+    % We pass Rest (rest of the list after processing the node), not the full list, so the processed Node is not included
     UpdatedSorted = lists:foldl(fun(ReachableNode, SortedAcc) ->
         dijkstra:update(ReachableNode, Length + 1, Node, SortedAcc)
     end, Rest, ReachableNodes),
