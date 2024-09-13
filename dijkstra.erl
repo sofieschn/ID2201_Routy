@@ -1,5 +1,5 @@
 -module(dijkstra).
--export([entry/2, replace/4, update/4]).
+-export([entry/2, replace/4, update/4, iterate/3]).
 
 % function helps us iterate through all nodes in the map/list to find the length of the path to a specific node calling the function
 entry(Node, []) ->
