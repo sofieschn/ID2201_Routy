@@ -1,5 +1,5 @@
 -module(dijkstra).
--export([entry/2, replace/4, update/4, iterate/3]).
+-export([table/2, route/2]).
 
 % function helps us iterate through all nodes in the map/list to find the length of the path to a specific node calling the function
 entry(Node, []) ->
@@ -80,3 +80,35 @@ iterate([{Node, Length, Gateway} | Rest], Map, Table) ->
 
     % recursively calls itself with the updated sorted list after each node is added
     iterate(UpdatedSorted, Map, NewTable).
+
+
+
+
+% function takes in a map list and a list of the gateways, and creates a routing table
+table(Gateways, Map) ->
+    % alls all_nodes fun to add all nodes to list
+    AllNodes = map:all_nodes(Map),
+    % checks each node in the allNodes list, and sees if its a memeber of the gateways list 
+    NodesWithPaths = [case lists:member(Node, Gateways) of  
+                    % if case is true, a tuple is created for the node with a path lenth 0
+                    true -> {Node, 0, Node};
+                    % if case is false, tuple with path lenght inf is created for the node
+                    false -> {Node, inf, unknown}
+                end || Node <- AllNodes],
+
+    % Sort the list based on the path length (second element of the tuple)
+    SortedList = lists:sort(fun({_, Length1, _}, {_, Length2, _}) -> Length1 < Length2 end, NodesWithPaths),
+
+
+    % the sorted list is send with the map and an empty table to iterate, to create the complete table
+    iterate(SortedList, Map, []).
+    
+% route is used to find the gateway for a specific node in a routing table
+route(Node, Table) ->
+    % searched the specific node in the table
+    case lists:keyfind(Node, 1, Table) of
+        % if found it displays ok, gateway
+        {Node, Gateway} -> {ok, Gateway};
+        % if its not found 'notfound' is displayed 
+        false -> notfound
+    end.
