@@ -1,13 +1,14 @@
 -module(routy).
--export([start/2, stop/1, init/1]).
+-export([start/2, stop/1, init/1, status/1]).
 
 
-start(Name, Location) ->
+start(ProcessName, Location) ->
     Pid = spawn(fun() -> init(Location) end),
-    case register(Name, Pid) of
+    case register(ProcessName, Pid) of
         true -> {ok, Pid};
-        _ -> {error, already_registered}
+        _ -> {error, registration_failed}
     end.
+
 
     
 stop(Node) ->
@@ -33,6 +34,7 @@ init(Name) ->
                 %  monitors the process associated with Pid. If the process dies, 'DOWN' message will be sent to router.
                 Ref = erlang:monitor(process, Pid),
                 Intf1 = interface:add(Node, Ref, Pid, Intf),
+                self() ! {ack, Node, Pid},
                 router(Name, Counter, Hist, Intf1, Table, Map);
 
             % remove an existing connection/interface.
