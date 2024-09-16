@@ -1,11 +1,15 @@
 -module(routy).
--export([start/2, stop/1]).
+-export([start/2, stop/1, init/1]).
 
 
-start(Reg, Name) ->
-    register(Reg, spawn(fun() -> init(Name) end)).
+start(Name, Location) ->
+    Pid = spawn(fun() -> init(Location) end),
+    case register(Name, Pid) of
+        true -> {ok, Pid};
+        _ -> {error, already_registered}
+    end.
 
-
+    
 stop(Node) ->
     Node ! stop,
     unregister(Node).
