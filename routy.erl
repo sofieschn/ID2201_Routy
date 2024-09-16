@@ -58,8 +58,10 @@ init(Name) ->
                         %% New information received, update the network map
                         UpdatedMap = map:update(Node, Links, Map),
                         interface:broadcast({links, Node, MessageNr, Links}, Intf),
+                        %% Recalculate the routing table
+                        UpdatedTable = dijkstra:table(interface:list(Intf), UpdatedMap),
                         %% Continue the router loop with updated history, map, and table
-                        router(Name, Counter, UpdatedHist, Intf, Table, UpdatedMap);
+                        router(Name, Counter, UpdatedHist, Intf, UpdatedTable, UpdatedMap);
                     old ->
                     % If message is old, continue with the current state
                     router(Name, Counter, Hist, Intf, Table, Map)
