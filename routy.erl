@@ -12,7 +12,7 @@ stop(Node) ->
 
 
 init(Name) ->
-    Intf = intf:new(),
+    Intf = interface:new(),
     Map = map:new(),
     Table = dijkstra:table(Intf, Map),
     Hist = hist:new(Name),
@@ -84,7 +84,7 @@ init(Name) ->
     status(RouterPid) ->
         %% Send the status request to the router.
         RouterPid ! {status, self()},
-        
+
         %% Wait for the response.
         receive
             {status, {Name, Counter, Hist, Intf, Table, Map}} ->

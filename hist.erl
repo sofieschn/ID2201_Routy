@@ -1,4 +1,4 @@
--module(history).
+-module(hist).
 -export([new/1, update/3]).
 
 % function makes the first message received from Name with a message number greater than 0 to be considered new.
