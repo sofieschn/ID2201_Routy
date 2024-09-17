@@ -30,25 +30,22 @@ init(Name) ->
                 io:format("~p: received message ~p from ~p~n", [Name, Message, From]),
                 router(Name, Counter, Hist, Intf, Table, Map);
 
+            % if the name is not matched, then forward to another hop
             {route, To, From, Message} ->
-                io:format("~p: routing message (~p) to ~p~n", [Name, Message, To]),
-                % calls dijkstra route fun to look for the 'To' router 
+                io:format("~w: routing message (~s) from ~w to ~w~n", [Name, Message, From, To]),
                 case dijkstra:route(To, Table) of
-                    % the destination router found in table
                     {ok, Gateway} ->
-                        % checks the interfaces for the gateway 
-                        case interface:lookup(Gateway, Intf) of
-                            % if found, sends message to router
-                            {ok, Pid} ->
-                                Pid ! {route, To, From, Message};
-                            % if no gateway, aka no route, is found to the destination router - message is dropped
+                        case interfaces:lookup(Gateway, Intf) of
                             notfound ->
-                                io:format("~p: interface for gateway ~p not found. Dropping message.~n", [Name, Gateway])
+                                io:format("~w: interface for gateway ~w not found ~n", [Name, Gateway]);
+                            {ok, Pid} ->
+                                io:format("~w: forward to ~w~n", [Name, Gateway]),
+                                Pid ! {route, To, From, Message}
                         end;
-                    % if destination router was not found in table at all
                     notfound ->
-                        io:format("~p: no routing entry for ~p. Dropping message.~n", [Name, To])
+                        io:format("~w: routing entry for ~w not found ~n", [Name, To])
                 end,
+                % The router process will continuously listen
                 router(Name, Counter, Hist, Intf, Table, Map);
 
              % Allow users to send a message.
