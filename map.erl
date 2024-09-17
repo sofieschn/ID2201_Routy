@@ -6,11 +6,17 @@ new() ->
     [].
 
 update(Node, Links, Map) ->
+        %% debugging below
+    io:format("Updating map: Node=~p Links=~p~n", [Node, Links]),
+    io:format("Current map before update: ~p~n", [Map]),
     % removes any existing entries from this Node if any have been made
     % when update is made, the prior update will always be deleted, therefor pos is 1. 
     MapWithoutNode = lists:keydelete(Node, 1, Map),
     % adds the new entry for links to this Node
-    [{Node, Links} | MapWithoutNode].
+    UpdatedMap = [{Node, Links} | MapWithoutNode],
+        % Debug: Log the updated map
+    io:format("Updated map: ~p~n", [UpdatedMap]),
+    UpdatedMap.
 
 % returns a list of the nodes which can be reached directly from current node
 reachable(Node, Map) ->

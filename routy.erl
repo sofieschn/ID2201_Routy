@@ -34,7 +34,6 @@ init(Name) ->
                 %  monitors the process associated with Pid. If the process dies, 'DOWN' message will be sent to router.
                 Ref = erlang:monitor(process, Pid),
                 Intf1 = interface:add(Node, Ref, Pid, Intf),
-                self() ! {ack, Node, Pid},
                 router(Name, Counter, Hist, Intf1, Table, Map);
 
             % remove an existing connection/interface.
