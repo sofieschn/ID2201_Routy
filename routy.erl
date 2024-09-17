@@ -2,14 +2,12 @@
 -export([start/2, stop/1, init/1, status/1]).
 
 
-start(ProcessName, Location) ->
-    Pid = spawn(fun() -> init(Location) end),
-    case register(ProcessName, Pid) of
+start(Reg, Name) ->
+    Pid = spawn(fun() -> init(Name) end),
+    case register(Reg, Pid) of
         true -> {ok, Pid};
         _ -> {error, registration_failed}
     end.
-
-
     
 stop(Node) ->
     Node ! stop,
@@ -35,24 +33,24 @@ init(Name) ->
                 Ref = erlang:monitor(process, Pid),
                 Intf1 = interface:add(Node, Ref, Pid, Intf),
                 % Call the update function here to recalculate the routing table
-                UpdatedTable = dijkstra:table(interface:list(Intf1), Map),
-                router(Name, Counter, Hist, Intf1, UpdatedTable, Map);
+                % UpdatedTable = dijkstra:table(interface:list(Intf1), Map),
+                router(Name, Counter, Hist, Intf1, Table, Map);
 
             % remove an existing connection/interface.
             {remove, Node} ->
                 {ok, Ref} = interface:ref(Node, Intf),
                 erlang:demonitor(Ref),
                 Intf1 = interface:remove(Node, Intf),
-                UpdatedTable = dijkstra:table(interface:list(Intf1), Map),
-                router(Name, Counter, Hist, Intf1, UpdatedTable, Map);
+                % UpdatedTable = dijkstra:table(interface:list(Intf1), Map),
+                router(Name, Counter, Hist, Intf1, Table, Map);
 
             % React to the crash or termination of a connected node's process.
             {'DOWN', Ref, process, _, _} ->
                 {ok, Down} = interface:name(Ref, Intf),
                 io:format("~w: exit received from ~w~n", [Name, Down]),
                 Intf1 = interface:remove(Down, Intf),
-                UpdatedTable = dijkstra:table(interface:list(Intf1), Map),
-                router(Name, Counter, Hist, Intf1, UpdatedTable, Map);
+                % UpdatedTable = dijkstra:table(interface:list(Intf1), Map),
+                router(Name, Counter, Hist, Intf1, Table, Map);
 
             %% Handling link-state updates
             {links, Node, MessageNr, Links} ->
@@ -62,8 +60,8 @@ init(Name) ->
                         UpdatedMap = map:update(Node, Links, Map),
                         io:format("~p: Updated map: ~p~n", [Name, UpdatedMap]),
                         interface:broadcast({links, Node, MessageNr, Links}, Intf),
-                        UpdatedTable = dijkstra:table(interface:list(Intf), UpdatedMap),
-                        router(Name, Counter, UpdatedHist, Intf, UpdatedTable, UpdatedMap);
+                        % UpdatedTable = dijkstra:table(interface:list(Intf), UpdatedMap),
+                        router(Name, Counter, UpdatedHist, Intf, Table, UpdatedMap);
                     old ->
                         io:format("~p: Received old link-state from ~p. Ignoring...~n", [Name, Node]),
                         router(Name, Counter, Hist, Intf, Table, Map)
@@ -76,11 +74,11 @@ init(Name) ->
                 From ! {status, {Name, Counter, Hist, Intf, Table, Map}},
                 router(Name, Counter, Hist, Intf, Table, Map);
 
-            % updates the routing table based on any updates
-            %update ->
-                %UpdatedTable = dijkstra:table(interface:list(Intf), Map),
-                %io:format("~p: Updated routing table: ~p~n", [Name, UpdatedTable]),
-                %router(Name, Counter, Hist, Intf, UpdatedTable, Map);
+            %updates the routing table based on any updates
+            update ->
+                UpdatedTable = dijkstra:table(interface:list(Intf), Map),
+                io:format("~p: Updated routing table: ~p~n", [Name, UpdatedTable]),
+                router(Name, Counter, Hist, Intf, UpdatedTable, Map);
         
             %%
             broadcast ->
