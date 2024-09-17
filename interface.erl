@@ -37,6 +37,7 @@ name(Ref, Intf) ->
         {Name, Ref, _} -> {ok, Name};
         false -> notfound
     end.
+    
 % Creates a list including only the names of all interfaces in the inputed list
 list(Intf) -> 
     [Name || {Name, _, _} <- Intf].
