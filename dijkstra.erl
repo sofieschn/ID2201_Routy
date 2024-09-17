@@ -19,7 +19,6 @@ replace(Node, Length, Gateway, Sorted)->
 %% Update list if the new path is shorter.
 update(Node, NewLength, Gateway, Sorted)->
 	case entry(Node, Sorted) of
-
 		%% If the new length is shorter than the old length, replace the element in the list.
 		OldLength when NewLength<OldLength ->
 			replace(Node, NewLength, Gateway, Sorted);
@@ -37,12 +36,12 @@ iterate([{_Node, inf, _Gateway}|_Rest], _Map, Table)->
 	Table;
 
 % Main case: Process the reachable nodes and add to the routing table
-iterate([{Node, Length, Gateway} | T], Map, Table) ->
+iterate([{Node, Length, Gateway} | Rest], Map, Table) ->
     % Get nodes directly reachable from the current node in the map.
     Reachables = map:reachable(Node, Map),
     
     % Update the sorted list with shorter paths found through the current node.
-    UpdatedSorted = lists:foldl(fun(N, Sorted) -> update(N, Length + 1, Gateway, Sorted) end, T, Reachables),
+    UpdatedSorted = lists:foldl(fun(N, Sorted) -> update(N, Length + 1, Gateway, Sorted) end, Rest, Reachables),
     
     % Recursively call iterate with the updated sorted list, adding the current node to the routing table.
     iterate(UpdatedSorted, Map, [{Node, Gateway} | Table]).
@@ -53,10 +52,10 @@ table(Gateways, Map) ->
     AllNodes = map:all_nodes(Map),
     
     % Initialize a list with all nodes set to an infinite path length.
-    IntialList = lists:map(fun(Node) -> {Node, inf, unknown} end, AllNodes),
+    NodesWithPaths = lists:map(fun(Node) -> {Node, inf, unknown} end, AllNodes),
 
     % Set the path length to 0 for the gateway nodes and sort the list.
-    SortedList = lists:foldl(fun(Node, List) -> update(Node, 0, Node, List) end, IntialList, Gateways),
+    SortedList = lists:foldl(fun(Node, List) -> update(Node, 0, Node, List) end, NodesWithPaths, Gateways),
     
     % Call iterate to generate the complete routing table from the sorted list.
     iterate(SortedList, Map, []).
