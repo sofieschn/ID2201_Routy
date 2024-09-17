@@ -21,6 +21,8 @@ init(Name) ->
     Map = map:new(),
     Table = dijkstra:table(Intf, Map),
     Hist = hist:new(Name),
+    %debugging
+    io:format("~p: Initialized with interfaces: ~p, map: ~p, table: ~p~n", [Name, Intf, Map, Table]),
     router(Name, 0, Hist, Intf, Table, Map).
 
 
@@ -34,7 +36,11 @@ init(Name) ->
                 %  monitors the process associated with Pid. If the process dies, 'DOWN' message will be sent to router.
                 Ref = erlang:monitor(process, Pid),
                 Intf1 = interface:add(Node, Ref, Pid, Intf),
-                router(Name, Counter, Hist, Intf1, Table, Map);
+                %debugging 
+                io:format("~p: Added interface to ~p. Updated interfaces: ~p~n", [Name, Node, Intf1]),
+                % Call the update function here to recalculate the routing table
+                UpdatedTable = dijkstra:table(interface:list(Intf1), Map),
+                router(Name, Counter, Hist, Intf1, UpdatedTable, Map);
 
             % remove an existing connection/interface.
             {remove, Node} ->
@@ -54,17 +60,17 @@ init(Name) ->
             {links, Node, MessageNr, Links} ->
                 case hist:update(Node, MessageNr, Hist) of
                     {new, UpdatedHist} ->
-                        %% New information received, update the network map
+                        io:format("~p: Received new link-state from ~p. Links: ~p~n", [Name, Node, Links]),
                         UpdatedMap = map:update(Node, Links, Map),
+                        io:format("~p: Updated map: ~p~n", [Name, UpdatedMap]),
                         interface:broadcast({links, Node, MessageNr, Links}, Intf),
-                        %% Recalculate the routing table
                         UpdatedTable = dijkstra:table(interface:list(Intf), UpdatedMap),
-                        %% Continue the router loop with updated history, map, and table
                         router(Name, Counter, UpdatedHist, Intf, UpdatedTable, UpdatedMap);
                     old ->
-                    % If message is old, continue with the current state
-                    router(Name, Counter, Hist, Intf, Table, Map)
+                        io:format("~p: Received old link-state from ~p. Ignoring...~n", [Name, Node]),
+                        router(Name, Counter, Hist, Intf, Table, Map)
                 end;
+            
                 
             % Respond to a request for the current state of the router.
             {status, From} ->
