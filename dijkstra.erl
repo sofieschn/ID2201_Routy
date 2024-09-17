@@ -2,7 +2,7 @@
 -export([entry/2, replace/4, update/4, iterate/3, table/2, route/2]).
 
 % function helps us iterate through all nodes in the map/list to find the length of the path to a specific node calling the function
-entry(Node, []) ->
+entry(_Node, []) ->
     % empty list or not found node returns 0
     0; 
 entry(Node, [{Node, Length, _Gateway} | _Rest]) ->
@@ -57,7 +57,7 @@ update(Node, N, Gateway, Sorted) ->
 % iterates the sorted list of nodes and their connections to manage a routing table
 
 % all reachable nodes in sorted list have been processed and added to routing table, no more in sorted list so table is returned
-iterate([], Map, Table) ->
+iterate([], _Map, Table) ->
     Table;
 
 % Infinite path case: If the first node has an infinite path, return the table

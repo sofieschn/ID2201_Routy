@@ -81,8 +81,9 @@ init(Name) ->
             % updates the routing table based on any updates
             update ->
                 UpdatedTable = dijkstra:table(interface:list(Intf), Map),
+                io:format("~p: Updated routing table: ~p~n", [Name, UpdatedTable]),
                 router(Name, Counter, Hist, Intf, UpdatedTable, Map);
- 
+        
             %%
             broadcast ->
                 Message = {links, Name, Counter, interface:list(Intf)},
