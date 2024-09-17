@@ -1,114 +1,82 @@
+
 -module(dijkstra).
--export([entry/2, replace/4, update/4, iterate/3, table/2, route/2]).
+-compile(export_all).
 
-% function helps us iterate through all nodes in the map/list to find the length of the path to a specific node calling the function
-entry(_Node, []) ->
-    % empty list or not found node returns 0
-    0; 
-entry(Node, [{Node, Length, _Gateway} | _Rest]) ->
-    % If the current node in the tuple matches the Node we are looking for, it returns the Length (the path length to that node).
-    Length;
-entry(Node, [_ | Rest]) ->
-    % If the current element in the list doesn’t match the Node, the function recursively calls itself with the Rest of the list.
-    entry(Node, Rest).
+%% Returns the length of the shortest path to the node or 0 if the node is not found.
+entry(Node, Sorted) ->
+	case lists:keyfind(Node, 1, Sorted) of
+		{_,N,_} ->
+			N;
+		false ->
+			0
+	end. 
 
+%% Replaces the entry for Node in Sorted with a new entry having a new length N and Gateway. The resulting list should of course be sorted.
+replace(Node, N, Gateway, Sorted)->
+	%% Keyfind finds the tubple with Node in position 1 in list Sorted and replaces it with the new tuple {Node, N, Gateway}
+	%% Keysort sorts by the second element in the tuple, which is the number of hops
+	lists:keysort(2, lists:keyreplace(Node, 1, Sorted, {Node, N, Gateway})). 
 
+%% Update list if the new path is shorter.
+update(Node, NewLength, Gateway, Sorted)->
+	case entry(Node, Sorted) of
 
-% replaces the entry for Node in Sorted with a new entry having a new length N and Gateway. 
-replace(Node, N, Gateway, Nodes) ->
-    % takes the new tuple for Node and inserts to the list Nodes, and deletes the previous tuple connected to this Node from the list, and calls the insert function to sort the list correctly
-    insert({Node, N, Gateway}, lists:keydelete(Node, 1, Nodes)).
+		%% If the new length is shorter than the old length, replace the element in the list.
+		OldLength when NewLength<OldLength ->
+			replace(Node, NewLength, Gateway, Sorted);
+		%% Otherwise, just leave the list as it is.
+		_->
+			Sorted
+	end.
+	
+%% Construct a table given a sorted list of nodes, a map and a table constructed so far.
+%% If there are no more entries in the sorted list then we are done and the given routing table is complete.
+iterate([], _, Table)->
+	Table;
 
+%% If the first entry is a dummy entry with an infinite path to a city we know that the rest of the sorted list is also 
+%% of infinite length and the given routing table is complete.
+iterate([{_, inf, _}|_], _, Table)->
+	Table;
 
+%% take the first entry in the sorted list, find the nodes in the map reachable from this entry and for each of these nodes 
+%% update the Sorted list. The entry that you took from the sorted list is added to the routing table.
+iterate([{Node, Length, Gateway}|T], Map, Table)->
 
-% helper function for sorting a list of Nodes
-insert({Node, NewLength, NewGateway}, []) ->
-    % if the list is empty, ut just adds the new tuple and returns the list
-    [{Node, NewLength, NewGateway}];
+	%% Find the nodes in the map reachable from Node
+	Reachables = map:reachable(Node, Map),
+	
+	%% Apply the "update" function on all nodes "N" in the "Reachable" list. 
+	%% T is the rest of the list. It is the accumulator because we want to save all our updates in the rest of the list. 
+	%% We add 1 to the length as we have found a new path to a node via the same Gateway, that is one jump further.
+	UpdatedSorted = lists:foldl(fun(N, Sorted)->update(N, Length+1, Gateway, Sorted) end, T, Reachables),
+	
+	%% Call itarate recursively with the updated sorted list and add the entry from the sorted list to the routing table
+	iterate(UpdatedSorted, Map, [{Node, Gateway}|Table]).
+	
+%% take a list of gateways and a map and produce a routing table with one entry per node in the map.
+table(Gateways, Map)->
+	%% List the nodes of the map
+	AllNodes = map:all_nodes(Map),
+	
+	%% Go through all nodes and set the length to inf and the gateway to unknown
+	IntialList = lists:map(fun(Node) -> {Node, inf, unknown} end, AllNodes),
+	
+	%% The entries of the gateways should have length zero and gateway set to itself.
+	%% Go through all elements in the list and set Gateway to the node itself and length to 0. 
+	%% Apply update on all Gateways. 
+	%% InitialList is the accumulator. We add all elements from the update function to this list. This gives us a complete sorted list. 
+	SortedList = lists:foldl(fun(Node, List) -> update(Node, 0, Node, List) end, IntialList, Gateways),
+	
+	%%Call iterate to get actual values from the sorted list. 
+	iterate(SortedList, Map, []).
 
-insert({New, NewLength, NewGateway}, [{Node, ExistingLength, ExistingGateway} | Rest]) when NewLength < ExistingLength ->
-    % the path length of the new entry calling the function and compares it to th currently shortest path length in the list. When the new one is shorter than the one it is compared to, it is added in the list
-    [{New, NewLength, NewGateway}, {Node, ExistingLength, ExistingGateway} | Rest];
-
-insert(New, [Node | Rest]) ->
-    % when the new node is not added to the list since it has a longer length than the node it is being checked against in the list, it will iterate through the nodes in the list
-    [Node | insert(New, Rest)].
-
-
-
-update(Node, N, Gateway, Sorted) ->
-    % calls entry function to get the path length of the node which is being updated (maybe)
-    CurrentLength = entry(Node, Sorted),
-    % checks if the path length actually is shorter than the existing one in the sorted list
-    case CurrentLength of 
-        0 -> 
-            % node not existing in the list, nothing should be updated and the sorted list is returned as is
-            Sorted;
-        _ when N < CurrentLength -> 
-            % when the new pathway is shorter than the length of the pathway in the sorted list, the length is replaced with the new replace function
-            replace(Node, N, Gateway, Sorted);
-        _ -> 
-            % if the path is not shorter than the previous one in the list, nothing is done and the list is returned as is
-            Sorted
-    end.
-
-
-
-% iterates the sorted list of nodes and their connections to manage a routing table
-
-% all reachable nodes in sorted list have been processed and added to routing table, no more in sorted list so table is returned
-iterate([], _Map, Table) ->
-    Table;
-
-% Infinite path case: If the first node has an infinite path, return the table
-iterate([{_Node, inf, _Gateway} |_Rest], _Map, Table) ->
-    Table;
-
-% Main case: Process the reachable nodes and add to the routing table
-iterate([{Node, Length, Gateway} | Rest], Map, Table) ->
-    % call the reachable function in map to retrieve directly reachable nodes for this node
-    ReachableNodes = map:reachable(Node, Map),
-
-    % Update sorted list for each reachable node using the update function
-    % We pass Rest (rest of the list after processing the node), not the full list, so the processed Node is not included
-    UpdatedSorted = lists:foldl(fun(ReachableNode, SortedAcc) ->
-        dijkstra:update(ReachableNode, Length + 1, Node, SortedAcc)
-    end, Rest, ReachableNodes),
-
-    % Add this node to the routing table
-    NewTable = [{Node, Gateway} | Table],
-
-    % recursively calls itself with the updated sorted list after each node is added
-    iterate(UpdatedSorted, Map, NewTable).
-
-
-
-
-% function takes in a map list and a list of the gateways, and creates a routing table
-table(Gateways, Map) ->
-    % alls all_nodes fun to add all nodes to list
-    AllNodes = map:all_nodes(Map),
-    % checks each node in the allNodes list, and sees if its a memeber of the gateways list 
-    NodesWithPaths = [case lists:member(Node, Gateways) of  
-                    % if case is true, a tuple is created for the node with a path lenth 0
-                    true -> {Node, 0, Node};
-                    % if case is false, tuple with path lenght inf is created for the node
-                    false -> {Node, inf, unknown}
-                end || Node <- AllNodes],
-
-    % Sort the list based on the path length (second element of the tuple)
-    SortedList = lists:sort(fun({_, Length1, _}, {_, Length2, _}) -> Length1 < Length2 end, NodesWithPaths),
-
-
-    % the sorted list is send with the map and an empty table to iterate, to create the complete table
-    iterate(SortedList, Map, []).
-    
-% route is used to find the gateway for a specific node in a routing table
-route(Node, Table) ->
-    % searched the specific node in the table
-    case lists:keyfind(Node, 1, Table) of
-        % if found it displays ok, gateway
-        {Node, Gateway} -> {ok, Gateway};
-        % if its not found 'notfound' is displayed 
-        false -> notfound
-    end.
+%% Search the routing table and return the gateway suitable to route messages to a node. 
+%% If a gateway is found we should return {ok, Gateway} otherwise we return notfound.
+route(Node, Table)->
+	case lists:keyfind(Node, 1, Table) of
+		{_, Gateway}->
+			{ok, Gateway};
+		false->
+			notfound
+	end.

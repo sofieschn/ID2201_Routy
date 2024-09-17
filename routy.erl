@@ -32,20 +32,23 @@ init(Name) ->
 
             % if the name is not matched, then forward to another hop
             {route, To, From, Message} ->
-                io:format("~w: routing message (~s) from ~w to ~w~n", [Name, Message, From, To]),
+                % calls dijkstra route function to look for the 'To' router 
                 case dijkstra:route(To, Table) of
+                    % the gateway found for the route
                     {ok, Gateway} ->
-                        case interfaces:lookup(Gateway, Intf) of
-                            notfound ->
-                                io:format("~w: interface for gateway ~w not found ~n", [Name, Gateway]);
+                        % checks the interfaces for the gateway 
+                        case interface:lookup(Gateway, Intf) of
+                            % if found, sends message to router
                             {ok, Pid} ->
-                                io:format("~w: forward to ~w~n", [Name, Gateway]),
-                                Pid ! {route, To, From, Message}
+                                Pid ! {route, To, From, Message};
+                            % if no gateway, aka no route, is found to the destination router - message is dropped
+                            notfound ->
+                                io:format("~p: interface for gateway ~p not found. Dropping message.~n", [Name, Gateway])
                         end;
+                    % if destination router was not found in table at all
                     notfound ->
-                        io:format("~w: routing entry for ~w not found ~n", [Name, To])
+                        io:format("~p: no routing entry for ~p. Dropping message.~n", [Name, To])
                 end,
-                % The router process will continuously listen
                 router(Name, Counter, Hist, Intf, Table, Map);
 
              % Allow users to send a message.
@@ -83,7 +86,7 @@ init(Name) ->
                     {new, UpdatedHist} ->
                         io:format("~p: Received new link-state from ~p. Links: ~p~n", [Name, Node, Links]),
                         UpdatedMap = map:update(Node, Links, Map),
-                        io:format("~p: Updated map: ~p~n", [Name, UpdatedMap]),
+                        % io:format("~p: Updated map: ~p~n", [Name, UpdatedMap]),
                         interface:broadcast({links, Node, MessageNr, Links}, Intf),
                         % Update the routing table here as well
                         UpdatedTable = dijkstra:table(interface:list(Intf), UpdatedMap),
@@ -101,7 +104,6 @@ init(Name) ->
             %updates the routing table based on calls for updates from routers
             update ->
                 UpdatedTable = dijkstra:table(interface:list(Intf), Map),
-                io:format("~p: Updated routing table: ~p~n", [Name, UpdatedTable]),
                 router(Name, Counter, Hist, Intf, UpdatedTable, Map);
             
             % Broadcasts link-state messages to neighbors

@@ -15,16 +15,13 @@ remove(Name, Intf) ->
     lists:keydelete(Name,1,Intf).
 
 % looks up interface based on the name, returns process identifyer
-lookup(Name, Intf) ->
-    % checks for name in intf list
-    % debugger
-    io:format("Looking up interface for ~p~n", [Name]), 
-    case lists:keyfind(Name, 1, Intf) of
-        % if found, returns ok, process id
-        {Name, _, Pid} -> {ok, Pid};
-        % if not found returns notfound
-        false -> notfound
-    end.
+lookup(Name, Intf)->
+	case lists:keyfind(Name, 1, Intf) of
+		{Name, _, Pid}->
+			{ok, Pid};
+		false->
+			notfound
+	end.
 
 % looks up interface based on the name, returns Ref
 ref(Name, Intf) ->
