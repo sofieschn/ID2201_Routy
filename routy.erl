@@ -86,10 +86,10 @@ init(Name) ->
                     {new, UpdatedHist} ->
                         io:format("~p: Received new link-state from ~p. Links: ~p~n", [Name, Node, Links]),
                         UpdatedMap = map:update(Node, Links, Map),
+                        UpdatedTable = dijkstra:table(interface:list(Intf), UpdatedMap),
                         % io:format("~p: Updated map: ~p~n", [Name, UpdatedMap]),
                         interface:broadcast({links, Node, MessageNr, Links}, Intf),
                         % Update the routing table here as well
-                        UpdatedTable = dijkstra:table(interface:list(Intf), UpdatedMap),
                         router(Name, Counter, UpdatedHist, Intf, UpdatedTable, UpdatedMap);
                     old ->
                         io:format("~p: Received old link-state from ~p. Ignoring...~n", [Name, Node]),

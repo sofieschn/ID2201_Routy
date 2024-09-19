@@ -10,11 +10,11 @@ run() ->
     {ok, R5} = routy:start(r5, malmo),
 
     % Step 2: Connect routers using the node names and IPs
-    R1 ! {add, lund, {r2, 'sweden@130.229.164.39'}},
-    R2 ! {add, gothenburg, {r3, 'sweden@130.229.164.39'}},
-    R3 ! {add, uppsala, {r4, 'sweden@130.229.164.39'}},
-    R4 ! {add, malmo, {r5, 'sweden@130.229.164.39'}},
-    R5 ! {add, stockholm, {r1, 'sweden@130.229.164.39'}},
+    R1 ! {add, lund, {r2, 'sweden@130.229.180.90'}},
+    R2 ! {add, gothenburg, {r3, 'sweden@130.229.180.90'}},
+    R3 ! {add, uppsala, {r4, 'sweden@130.229.180.90'}},
+    R4 ! {add, malmo, {r5, 'sweden@130.229.180.90'}},
+    R5 ! {add, stockholm, {r1, 'sweden@130.229.180.90'}},
 
     % Step 3: Broadcast link-state messages
     R1 ! broadcast,
